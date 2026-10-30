@@ -32,7 +32,9 @@ extern void mt62xx_handle_irq(struct pt_regs *regs);
 #define LCD_BASE    0xA0450000
 #define GPIO_BASE   0xA0020000
 #define CONFIG_BASE 0xA0010000
-#define MIXED_BASE  0xA0170000
+#define ISINK_BASE  0xA0700000  /* ISINK current sink (backlight LED driver) */
+#define PMU_BASE    0xA0730000  /* ANA_CFGSYS (backlight clock gating) */
+#define KEYPAD_BASE 0xA00D0000
 
 
 static struct plat_serial8250_port mt62xx_uart_data[] = {
@@ -133,6 +135,29 @@ static struct platform_device mt62xx_lcd_device = {
     .resource       = mt62xx_lcd_resources,
 };
 
+/* Keypad device */
+static struct resource mt62xx_keypad_resources[] = {
+    {
+        .start  = KEYPAD_BASE,
+        .end    = KEYPAD_BASE + 0x1F,
+        .flags  = IORESOURCE_MEM,
+        .name   = "keypad-regs",
+    },
+    {
+        .start  = 21,  /* IRQ_KPAD_CODE mapped to hardware line 21 */
+        .end    = 21,
+        .flags  = IORESOURCE_IRQ,
+        .name   = "keypad-irq",
+    },
+};
+
+static struct platform_device mt62xx_keypad_device = {
+    .name           = "mt62xx-keypad",
+    .id             = -1,
+    .num_resources  = ARRAY_SIZE(mt62xx_keypad_resources),
+    .resource       = mt62xx_keypad_resources,
+};
+
 static void __init mt62xx_fix_uart_from_maui(void)
 {
     writel_relaxed(0x00, UART_BASE + 0x4C);
@@ -161,6 +186,9 @@ static void __init mt62xx_init(void)
 #endif
 #ifdef CONFIG_FB_MT62XX
     platform_device_register(&mt62xx_lcd_device);
+#endif
+#ifdef CONFIG_INPUT_MT62XX_KEYPAD
+    platform_device_register(&mt62xx_keypad_device);
 #endif
 }
 
